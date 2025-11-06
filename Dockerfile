@@ -105,7 +105,7 @@ RUN mkdir -p /var/run/sshd /root/.ssh && \
     echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config && \
     echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config && \
     echo 'Port 22' >> /etc/ssh/sshd_config
-    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOSS+laAugPxcOvgCYNy8NU9ed2TqN5ZEjckxhL5lIm7 ssh@jatoriross.com" > /root/.shh/authorized_keys && \
+    echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOSS+laAugPxcOvgCYNy8NU9ed2TqN5ZEjckxhL5lIm7 ssh@jatoriross.com' >> /root/.shh/authorized_keys && \
     chmod 600 /root/.ssh/authorized_keys
 
 # Copy entrypoint script
