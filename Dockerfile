@@ -45,9 +45,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
 
-# Install uv (Python package manager)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
 # Install Open WebUI using uv (handles Python + dependencies automatically)
 RUN uv pip install --system open-webui
 
@@ -78,6 +75,7 @@ COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
+COPY --from=base /root/.local/bin /root/.local/bin
 
 # Copy Open WebUI and ALL Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
