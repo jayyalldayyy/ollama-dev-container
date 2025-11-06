@@ -46,8 +46,6 @@ FROM base AS builder
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
 
 # Install Python deps (Open WebUI) — heavy build step
 RUN pip3 install --no-cache-dir open-webui && \
