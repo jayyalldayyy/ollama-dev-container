@@ -3,11 +3,6 @@ set -e
 
 echo "🚀 Starting Ollama Dev Container..."
 
-# Start Docker daemon
-echo "Starting Docker daemon..."
-dockerd > /var/log/dockerd.log 2>&1 &
-sleep 8
-
 # Start Ollama service
 echo "Starting Ollama service..."
 ollama serve > /var/log/ollama.log 2>&1 &
@@ -28,12 +23,8 @@ done
 
 # Start Open WebUI
 echo "Starting Open WebUI..."
-cd /app
-docker-compose up -d
-
-# Wait for Open WebUI to be ready
-echo "Waiting for Open WebUI to initialize..."
-sleep 10
+open-webui serve --host 0.0.0.0 --port 8080 > /var/log/open-webui.log 2>&1 &
+sleep 5
 
 echo "✅ All services running"
 echo ""

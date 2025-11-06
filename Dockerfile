@@ -26,6 +26,8 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     sudo \
     rsync \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker
@@ -45,6 +47,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
+# Install Open WebUI via pip
+RUN pip3 install open-webui
+
 # Create directory structure
 RUN mkdir -p /mnt/data/ollama/models \
              /mnt/data/open-webui \
@@ -54,6 +59,10 @@ RUN mkdir -p /mnt/data/ollama/models \
 # Configure Ollama to use persistent storage
 ENV OLLAMA_MODELS=/mnt/data/ollama/models
 
+# Configure Open WebUI to use persistent storage
+ENV DATA_DIR=/mnt/data/open-webui
+ENV OLLAMA_BASE_URL=http://localhost:11434
+
 # Configure SSH - key-only authentication
 RUN mkdir -p /var/run/sshd /root/.ssh && \
     chmod 700 /root/.ssh && \
@@ -62,8 +71,7 @@ RUN mkdir -p /var/run/sshd /root/.ssh && \
     echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config && \
     echo 'Port 22' >> /etc/ssh/sshd_config
 
-# Copy docker-compose.yml and entrypoint script
-COPY docker-compose.yml /app/docker-compose.yml
+# Copy entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
 
 # Make entrypoint executable
@@ -77,7 +85,7 @@ EXPOSE 22
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD pgrep -x ollama && pgrep -x dockerd && pgrep -x sshd || exit 1
+    CMD pgrep -x ollama && pgrep -x "open-webui" && pgrep -x sshd || exit 1
 
 # Start everything
 ENTRYPOINT ["/app/entrypoint.sh"]
