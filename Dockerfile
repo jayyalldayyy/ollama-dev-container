@@ -26,9 +26,14 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     sudo \
     rsync \
-    python3 \
-    python3-pip \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update \
+    && apt-get install -y python3.11 python3.11-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3.11 1
 
 # Install Docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
@@ -62,6 +67,7 @@ ENV OLLAMA_MODELS=/mnt/data/ollama/models
 # Configure Open WebUI to use persistent storage
 ENV DATA_DIR=/mnt/data/open-webui
 ENV OLLAMA_BASE_URL=http://localhost:11434
+ENV WEBUI_AUTH=false
 
 # Configure SSH - key-only authentication
 RUN mkdir -p /var/run/sshd /root/.ssh && \
