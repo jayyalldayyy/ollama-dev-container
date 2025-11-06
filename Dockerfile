@@ -73,7 +73,6 @@ RUN apt-get update && apt-get install -y \
 
 # copy minimal runtime binaries and dependencies
 COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
-COPY --from=base /usr/bin/ollama /usr/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
