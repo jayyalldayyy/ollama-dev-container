@@ -75,9 +75,6 @@ COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
 
-# Copy uv from base (we'll need it to run things)
-COPY --from=base /root/.cargo/bin/uv /usr/local/bin/uv
-
 # Copy Open WebUI and ALL Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
 COPY --from=builder /usr/local/bin/open-webui /usr/local/bin/open-webui
