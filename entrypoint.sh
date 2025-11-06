@@ -23,7 +23,7 @@ done
 
 # Start Open WebUI
 echo "Starting Open WebUI..."
-open-webui serve --host 0.0.0.0 --port 8080 > /var/log/open-webui.log 2>&1 &
+DATA_DIR=/mnt/data/open-webui uv run --python 3.10 open-webui@latest serve --host 0.0.0.0 --port 8080 > /var/log/open-webui.log 2>&1 &
 sleep 5
 
 echo "✅ All services running"

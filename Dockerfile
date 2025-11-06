@@ -23,18 +23,15 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     software-properties-common \
     build-essential \
-    python3 \
-    python3-pip \
-    python3-dev \
     openssh-server \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Upgrade pip
-RUN pip3 install --no-cache-dir --upgrade pip
+# Install uv (Python package manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Verify installations
-RUN python3 --version && pip3 --version
+# Add uv to PATH
+ENV PATH="/root/.cargo/bin:$PATH"
 
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
@@ -47,9 +44,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
 
-# Install Python deps (Open WebUI) — heavy build step
-RUN pip3 install --no-cache-dir open-webui && \
-    python3 -c "import open_webui; print('✅ Open WebUI installed')"
+# Install Open WebUI using uv (handles Python + dependencies automatically)
+RUN uv pip install --system open-webui
+
+# Verify installation
+RUN python3 -c "import open_webui; print('✅ Open WebUI installed via uv')"
 
 # Remove temporary build files and apt cache
 RUN rm -rf /root/.cache /tmp/* /var/lib/apt/lists/*
@@ -67,7 +66,6 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     openssh-server \
     python3 \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -76,6 +74,9 @@ COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
+
+# Copy uv from base (we'll need it to run things)
+COPY --from=base /root/.cargo/bin/uv /usr/local/bin/uv
 
 # Copy Open WebUI and ALL Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
