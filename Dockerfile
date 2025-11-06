@@ -34,7 +34,7 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y
 # Update again and install Python 3.11
 RUN apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-pip \
+    python3.11-distutils \
     python3.11-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -42,7 +42,16 @@ RUN apt-get update && apt-get install -y \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 # Install pip for Python 3.11
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.11 get-pip.py && \
+    rm get-pip.py
+
+# Create symlinks for pip
+RUN ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
+    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip
+
+# Verify installations
+RUN python3 --version && pip3 --version
 
 # Install Node.js 20 LTS + npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
