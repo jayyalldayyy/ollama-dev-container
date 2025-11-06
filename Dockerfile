@@ -3,7 +3,9 @@
 # Purpose: GPU-accelerated coding environment with persistent storage
 # Author: Jatori Ross (Luxe Property Rescue)
 
-FROM ubuntu:22.04
+
+# ---------- Stage 1: Base Builder ----------
+FROM ubuntu:22.04 AS base
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -58,11 +60,47 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
 
+# Clean up Node and apt caches to reduce image size
+RUN npm cache clean --force && rm -rf /root/.cache
+
+
+# ---------- Stage 2: App Builder ----------
+FROM base AS builder
+
+# Install Python deps (Open WebUI) — heavy build step
+RUN pip3 install --no-cache-dir open-webui
+
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Install Open WebUI via pip
-RUN pip3 install open-webui
+# Remove temporary build files and apt cache
+RUN rm -rf /root/.cache /tmp/* /var/lib/apt/lists/*
+
+
+
+# ---------- Stage 3: Runtime ----------
+FROM ubuntu:22.04 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# only what’s needed to *run* apps
+RUN apt-get update && apt-get install -y \
+    python3.11 python3.11-distutils \
+    curl wget git ca-certificates openssh-server sudo rsync \
+    && rm -rf /var/lib/apt/lists/*
+
+# copy minimal runtime binaries
+COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
+COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=builder /usr/local/bin/pip3 /usr/local/bin/pip3
+COPY --from=builder /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=builder /usr/bin/node /usr/bin/node
+COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
+COPY --from=builder /usr/bin/npm /usr/bin/npm
+
+# Strip unnecessary Python bytecode to save space
+RUN find /usr/local/lib/python3.11 -type f -name "*.pyc" -delete
 
 # Create directory structure
 RUN mkdir -p /mnt/data/ollama/models \
@@ -70,10 +108,8 @@ RUN mkdir -p /mnt/data/ollama/models \
              /mnt/data/workspace \
              /app
 
-# Configure Ollama to use persistent storage
+# Configure Ollama + Open WebUI to use persistent storage
 ENV OLLAMA_MODELS=/mnt/data/ollama/models
-
-# Configure Open WebUI to use persistent storage
 ENV DATA_DIR=/mnt/data/open-webui
 ENV OLLAMA_BASE_URL=http://localhost:11434
 ENV WEBUI_AUTH=false
