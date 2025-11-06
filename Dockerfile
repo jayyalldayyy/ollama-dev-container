@@ -73,9 +73,11 @@ RUN pip3 install --no-cache-dir open-webui
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
+# (debug) show Python install locations before copying to runtime
+RUN which python3.11 && ls -l /usr/bin/python3.11 /usr/local/bin/python3* || true
+
 # Remove temporary build files and apt cache
 RUN rm -rf /root/.cache /tmp/* /var/lib/apt/lists/*
-
 
 
 # ---------- Stage 3: Runtime ----------
@@ -91,10 +93,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # copy minimal runtime binaries
-COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
-COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=builder /usr/bin/python3.11 /usr/bin/python3.11
 COPY --from=builder /usr/local/bin/pip3 /usr/local/bin/pip3
-COPY --from=builder /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
