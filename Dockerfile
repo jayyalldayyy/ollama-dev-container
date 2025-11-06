@@ -14,12 +14,7 @@ ENV TZ=UTC
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    wget \
-    git \
-    nano \
-    htop \
     ca-certificates \
-    gnupg \
     lsb-release \
     software-properties-common \
     build-essential \
@@ -39,10 +34,19 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 # ---------- Stage 2: App Builder ----------
 FROM base AS builder
 
+# Install Python 3.11
+RUN apt-get update && apt-get install -y \
+    python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
 # Install Node.js 20 LTS + npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
+
+# Install uv (Python package manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install Open WebUI using uv (handles Python + dependencies automatically)
 RUN uv pip install --system open-webui
