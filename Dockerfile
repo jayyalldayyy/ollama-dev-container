@@ -93,14 +93,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # copy minimal runtime binaries and dependencies
-COPY --from=builder /usr/bin/python3.11 /usr/bin/python3.11
-COPY --from=builder /usr/bin/pip3 /usr/bin/pip3
-COPY --from=builder /usr/lib/python3.11 /usr/lib/python3.11
 COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
-
 
 # Strip unnecessary Python bytecode to save space
 RUN find /usr/local/lib/python3.11 -type f -name "*.pyc" -delete
