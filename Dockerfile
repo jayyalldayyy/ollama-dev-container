@@ -16,87 +16,73 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
-    vim \
     nano \
-    jq \
     htop \
     ca-certificates \
     gnupg \
     lsb-release \
     software-properties-common \
     build-essential \
+    python3 \
+    python3-pip \
+    python3-dev \
     openssh-server \
-    sudo \
-    rsync \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Add deadsnakes PPA for Python 3.11
-RUN add-apt-repository ppa:deadsnakes/ppa -y
-
-# Update again and install Python 3.11
-RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-distutils \
-    python3.11-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Python 3.11 as default
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-
-# Install pip for Python 3.11
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python3.11 get-pip.py && \
-    rm get-pip.py
-
-# Create symlinks for pip
-RUN ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip3 && \
-    ln -sf /usr/local/bin/pip3.11 /usr/local/bin/pip
+# Upgrade pip
+RUN pip3 install --no-cache-dir --upgrade pip
 
 # Verify installations
 RUN python3 --version && pip3 --version
+
+# Install Ollama
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# ---------- Stage 2: App Builder ----------
+FROM base AS builder
 
 # Install Node.js 20 LTS + npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest
-
-# Clean up Node and apt caches to reduce image size
-RUN npm cache clean --force && rm -rf /root/.cache
-
-
-# ---------- Stage 2: App Builder ----------
-FROM base AS builder
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
 
 # Install Python deps (Open WebUI) — heavy build step
-RUN pip3 install --no-cache-dir open-webui
-
-# Install Ollama
-RUN curl -fsSL https://ollama.com/install.sh | sh
-
-# (debug) show Python install locations before copying to runtime
-RUN which python3.11 && ls -l /usr/bin/python3.11 /usr/local/bin/python3* || true
+RUN pip3 install --no-cache-dir open-webui && \
+    python3 -c "import open_webui; print('✅ Open WebUI installed')"
 
 # Remove temporary build files and apt cache
 RUN rm -rf /root/.cache /tmp/* /var/lib/apt/lists/*
 
 
 # ---------- Stage 3: Runtime ----------
-FROM ubuntu:22.04 AS runtime
+FROM ubuntu:22.04 AS final
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
 # only what’s needed to *run* apps
 RUN apt-get update && apt-get install -y \
-    python3.11 python3.11-distutils \
-    curl wget git ca-certificates openssh-server sudo rsync \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    ca-certificates \
+    openssh-server \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # copy minimal runtime binaries and dependencies
 COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
+COPY --from=base /usr/bin/ollama /usr/bin/ollama
 COPY --from=builder /usr/bin/node /usr/bin/node
 COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
 COPY --from=builder /usr/bin/npm /usr/bin/npm
+
+# Copy Open WebUI and ALL Python packages from builder
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=builder /usr/local/bin/open-webui /usr/local/bin/open-webui
 
 # Strip unnecessary Python bytecode to save space
 RUN find /usr/local/lib/python3.11 -type f -name "*.pyc" -delete
@@ -121,6 +107,8 @@ RUN mkdir -p /var/run/sshd /root/.ssh && \
     echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config && \
     echo 'AllowTcpForwarding yes' >> /etc/ssh/sshd_config && \
     echo 'Port 22' >> /etc/ssh/sshd_config
+    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOSS+laAugPxcOvgCYNy8NU9ed2TqN5ZEjckxhL5lIm7 ssh@jatoriross.com" > /root/.shh/authorized_keys && \
+    chmod 600 /root/.ssh/authorized_keys
 
 # Copy entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
